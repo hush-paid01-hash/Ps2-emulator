@@ -1,0 +1,93 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate icons / splash
+        run: npm run icons
+
+      - name: Typecheck + build
+        run: npm run build
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: emberstation-web
+          path: dist/
+          if-no-files-found: error
+
+  ios:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate icons / splash
+        run: npm run icons
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Configure Info.plist (arm64, no encryption)
+        run: node scripts/configure-ios.mjs
+
+      - name: Sync iOS project
+        run: npx cap sync ios
+
+      - name: Generate native app icon + splash
+        run: npm run icons
+
+      - name: Build iOS app (simulator, unsigned)
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/App/build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload iOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: emberstation-ios-app
+          path: ios/App/build/Build/Products/Debug-iphonesimulator/*.app
+          if-no-files-found: error
