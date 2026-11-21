@@ -67,6 +67,9 @@ jobs:
       - name: Configure Info.plist (arm64, no encryption)
         run: node scripts/configure-ios.mjs
 
+      - name: Generate Xcode scheme
+        run: node scripts/make-scheme.mjs
+
       - name: Sync iOS project
         run: npx cap sync ios
 
@@ -77,7 +80,7 @@ jobs:
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
-            -target App \
+            -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
             -derivedDataPath ios/App/build \
