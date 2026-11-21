@@ -74,13 +74,30 @@ your Apple signing certificate + provisioning profile as repository secrets and
 replace the build step with `xcodebuild archive` + `-exportArchive`
 (see Apple's "Exporting your app" docs).
 
-## 4. Distribution
+## 4. Sideloading with Esign (unsigned IPA)
+
+The `ios` job also uploads **`emberstation-unsigned-ipa`** — an **unsigned**
+`Payload/App.app` IPA built for `iphoneos` (arm64, Release). It is intentionally
+left unsigned so Esign can sign it on-device with your own certificate.
+
+1. Download `EmberStation-unsigned.ipa` from the workflow run's **Artifacts**.
+2. Open **Esign** → import the IPA.
+3. Select your certificate + provisioning profile (Apple ID or paid dev account).
+   - With a **free** Apple ID the profile is usually a wildcard App ID. If
+     `com.emberstation.emulator` is not covered, change the bundle identifier in
+     Esign (e.g. `com.yourname.emberstation`) to match the profile.
+   - The device's UDID must be registered in the profile.
+4. Sign & install. Free accounts: 7-day expiry, 3 apps per Apple ID.
+
+Requirements: the iPhone must run **iOS 15+** (the GS pipeline uses WebGL2).
+
+## 5. Distribution
 
 - **TestFlight / App Store:** Xcode → **Product → Archive** → **Distribute App**.
 - `ITSAppUsesNonExemptEncryption` is set to `false` in `Info.plist`, so you
   won't be prompted on every upload.
 
-## 5. Regenerating icons & splash
+## 6. Regenerating icons & splash
 
 ```bash
 npm run icons
@@ -89,7 +106,7 @@ npm run icons
 Writes `public/icons/*` and, if `ios/` exists, overwrites the
 `AppIcon.appiconset` and `Splash.imageset` PNGs.
 
-## 6. What was changed for iOS
+## 7. What was changed for iOS
 
 | Area | Change |
 | --- | --- |
@@ -104,7 +121,7 @@ Writes `public/icons/*` and, if `ios/` exists, overwrites the
 | WebGL contexts | `Pipeline.dispose()` on tab switches (iOS caps WebGL contexts) |
 | `Info.plist` | `arm64` capability, `ITSAppUsesNonExemptEncryption=false` |
 
-## 7. iOS notes & limitations
+## 8. iOS notes & limitations
 
 - **WebGL2** (GS-Enhance pipeline) requires **iOS 15+**.
 - The demo disc runs a real MIPS-III program; commercial PS2 games still need a

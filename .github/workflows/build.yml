@@ -93,3 +93,33 @@ jobs:
           name: emberstation-ios-app
           path: ios/App/build/Build/Products/Debug-iphonesimulator/*.app
           if-no-files-found: error
+
+      # ---- device IPA for sideloading (Esign, Sideloadly, AltStore, ...) ----
+      - name: Build device app (unsigned, arm64)
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build-device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build-ipa/Payload
+          cp -R "build-device/Build/Products/Release-iphoneos/App.app" build-ipa/Payload/
+          # an unsigned IPA is just a zip with Payload/<App>.app at the root
+          ( cd build-ipa && zip -qry EmberStation-unsigned.ipa Payload )
+          ls -lh build-ipa
+          unzip -l build-ipa/EmberStation-unsigned.ipa | head -20
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: emberstation-unsigned-ipa
+          path: build-ipa/EmberStation-unsigned.ipa
+          if-no-files-found: error
